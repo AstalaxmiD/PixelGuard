@@ -7,4 +7,4 @@ Astalaxmi Dhanaseelan: ASD153@pitt.edu
 Sharvi Arora: SHA370@pitt.edu
 Iris Chen: IRC39@pitt.edu
 
-Link: https://pixelguard-8yzg.onrender.com
+Link: https://pixelguardapp1.onrender.com
