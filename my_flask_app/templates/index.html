@@ -1,56 +1,134 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Layered Image Protection</title>
+  <meta charset="UTF-8">
+  <title>PixelGuard – Protect Your Images</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* Fullscreen pixel grid */
+    .pixel-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, 60px);
+      grid-auto-rows: 60px;
+      gap: 2px;
+      width: 100%;
+      height: 100%;
+    }
+    .pixel-cell {
+      width: 60px;
+      height: 60px;
+      background: transparent;
+      border: 1px solid rgba(255,255,255,0.1);
+      transition: background 0.4s ease;
+    }
+    .pixel-cell:hover {
+      background: linear-gradient(135deg, #6366f1, #ec4899, #22d3ee);
+    }
+    /* Make sure grid sits in background */
+    .background-grid {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      z-index: 0;
+      overflow: hidden;
+      opacity: 0.25;
+    }
+  </style>
 </head>
-<body>
-    <h2>Upload an Image for Layered Protection</h2>
-    <form id="uploadForm" enctype="multipart/form-data" method="POST" action="/protect-layered">
-        <input type="file" name="image" accept="image/*" required>
-        <br><br>
-        <button type="submit">Protect Image</button>
-    </form>
+<body class="bg-gray-900 text-gray-100 min-h-screen flex items-center justify-center font-sans relative overflow-hidden">
 
-    <h3>Protected Image Preview</h3>
-    <img id="protectedImg" src="" alt="Your protected image will appear here" style="max-width: 500px; display: none;">
+  <!-- Pixel grid background -->
+  <div class="background-grid">
+    <div class="pixel-grid" id="pixelGrid"></div>
+  </div>
 
-    <script>
-        const form = document.getElementById('uploadForm');
-        const protectedImg = document.getElementById('protectedImg');
+  <!-- Main content -->
+  <div class="z-10 w-full max-w-xl bg-gray-800 rounded-2xl shadow-xl p-8 relative">
+    <h1 class="text-3xl font-bold text-center text-indigo-400">PixelGuard</h1>
+    <p class="text-gray-400 text-center mt-2">Protect your images with pixel-level security</p>
 
-        form.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const formData = new FormData(form);
+    <form id="uploadForm" enctype="multipart/form-data" method="POST" action="/protect-layered" 
+      class="mt-6 flex flex-col items-center gap-4 border-2 border-dashed border-gray-600 p-6 rounded-xl hover:border-indigo-400 transition">
 
-            const response = await fetch(form.action, {
-                method: 'POST',
-                body: formData
-            });
+  <div class="flex justify-center">
+    <input type="file" name="image" accept="image/*" required 
+           class="text-sm text-gray-300 file:mr-4 file:py-2 file:px-4
+           file:rounded-full file:border-0
+           file:text-sm file:font-semibold
+           file:bg-indigo-900/30 file:text-indigo-400
+           hover:file:bg-indigo-800/50 cursor-pointer mx-auto" />
+  </div>
+  
+  <button type="submit" 
+          class="mt-4 px-6 py-2 bg-indigo-600 text-white rounded-full shadow hover:bg-indigo-700 transition">
+    Protect Image
+  </button>
+</form>
 
-            if (response.ok) {
-                const blob = await response.blob();
-                const url = URL.createObjectURL(blob);
 
-                // Show preview
-                protectedImg.src = url;
-                protectedImg.style.display = 'block';
+    <div id="previewSection" class="mt-8 hidden">
+      <h2 class="text-xl font-semibold text-gray-200 mb-3">Protected Image Preview</h2>
+      <img id="protectedImg" src="" alt="Protected Image" class="rounded-lg shadow-md max-w-full" />
+    </div>
+  </div>
 
-                // Automatically trigger download
-                const a = document.createElement('a');
-                a.href = url;
+  <script>
+    // Fill pixel grid dynamically
+    document.addEventListener("DOMContentLoaded", () => {
+      const grid = document.getElementById("pixelGrid");
+      const cols = Math.ceil(window.innerWidth / 62); // 60px + 2px gap
+      const rows = Math.ceil(window.innerHeight / 62);
 
-                // Extract original filename from input
-                const fileInput = document.querySelector('input[name="image"]');
-                const originalName = fileInput.files[0].name;
-                a.download = `protected_${originalName}`;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-            } else {
-                alert('Failed to protect image: ' + response.statusText);
-            }
+      for (let i = 0; i < cols * rows; i++) {
+        const cell = document.createElement("div");
+        cell.className = "pixel-cell";
+        grid.appendChild(cell);
+      }
+    });
+
+    // Handle form submission
+    const form = document.getElementById('uploadForm');
+    const protectedImg = document.getElementById('protectedImg');
+    const previewSection = document.getElementById('previewSection');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const formData = new FormData(form);
+
+      const button = form.querySelector('button');
+      button.textContent = "Processing...";
+      button.disabled = true;
+
+      try {
+        const response = await fetch(form.action, {
+          method: 'POST',
+          body: formData
         });
-    </script>
+
+        if (response.ok) {
+          const blob = await response.blob();
+          const url = URL.createObjectURL(blob);
+
+          protectedImg.src = url;
+          previewSection.classList.remove("hidden");
+
+          const fileInput = document.querySelector('input[name="image"]');
+          const originalName = fileInput.files[0].name;
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `protected_${originalName}`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+        } else {
+          alert('Failed to protect image: ' + response.statusText);
+        }
+      } catch (err) {
+        alert("An error occurred: " + err.message);
+      } finally {
+        button.textContent = "Protect Image";
+        button.disabled = false;
+      }
+    });
+  </script>
 </body>
 </html>
