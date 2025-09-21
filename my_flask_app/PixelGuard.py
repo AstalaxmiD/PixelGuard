@@ -31,25 +31,16 @@ def apply_adversarial_noise(image_data, epsilon=5):
 
 # --- 3. Metadata injection ---
 def inject_metadata(image_data, warning_message="DO NOT USE FOR AI TRAINING"):
-    img_format = (image_data.format or 'PNG').upper()
     try:
         img_io = io.BytesIO()
-
-        if img_format in ['JPEG', 'JPG']:
-            exif_dict = image_data.getexif() or {}
-            exif_dict[0x9286] = warning_message  # UserComment
-            image_data.save(img_io, format='JPEG', exif=exif_dict)
-        else:
-            info = PngImagePlugin.PngInfo()
-            info.add_text("Warning", warning_message)
-            image_data.save(img_io, format='PNG', pnginfo=info)
-
+        info = PngImagePlugin.PngInfo()
+        info.add_text("Warning", warning_message)
+        image_data.save(img_io, format='PNG', pnginfo=info)
         img_io.seek(0)
         return Image.open(img_io)
-
     except Exception as e:
         print("Metadata injection error:", e)
-        raise
+        return image_data  # fallback if metadata fails
 
 # --- Routes ---
 @app.route('/')
@@ -76,17 +67,16 @@ def protect_image_layered():
         # Inject metadata once at the end
         img = inject_metadata(img)
 
-        # Return protected image
+        # Return protected image (always PNG for consistency)
         img_io = io.BytesIO()
-        out_format = img.format or 'PNG'
-        img.save(img_io, format=out_format)
+        img.save(img_io, format='PNG')
         img_io.seek(0)
 
         return send_file(
             img_io,
-            mimetype=f'image/{out_format.lower()}',
+            mimetype='image/png',
             as_attachment=True,
-            download_name=f'protected_{file.filename}'
+            download_name=f'protected_{os.path.splitext(file.filename)[0]}.png'
         )
 
     except Exception as e:
