@@ -2,6 +2,7 @@ from flask import Flask, request, send_file, render_template
 from PIL import Image, PngImagePlugin
 import numpy as np
 import io
+import os
 
 app = Flask(__name__)
 
@@ -102,5 +103,6 @@ def protect_image_layered():
 
 
 if __name__ == '__main__':
-    app.run(host='127.0.0.1', port=5000, debug=True)
+    port = int(os.environ.get("PORT", 5000))  # default 5000 locally
+    app.run(host='0.0.0.0', port=port, debug=True)
 
